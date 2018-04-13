@@ -1,0 +1,2 @@
+- module: logstash
+  hosts: ["localhost:9600"]

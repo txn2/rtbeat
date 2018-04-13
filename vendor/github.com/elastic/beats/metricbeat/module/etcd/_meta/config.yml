@@ -1,0 +1,2 @@
+- module: etcd
+  hosts: ["localhost:2379"]

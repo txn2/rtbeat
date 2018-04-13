@@ -1,0 +1,2 @@
+- module: elasticsearch
+  hosts: ["localhost:9200"]
