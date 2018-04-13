@@ -2,8 +2,7 @@
   title: rtbeat
   description:
   fields:
-    - name: counter
-      type: long
+    - name: rxtxMessage
       required: true
       description: >
-        PLEASE UPDATE DOCUMENTATION
+        Contains an rxtx message.

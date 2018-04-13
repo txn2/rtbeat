@@ -334,12 +334,10 @@ None
 
 
 [float]
-=== `counter`
-
-type: long
+=== `rxtxMessage`
 
 required: True
 
-PLEASE UPDATE DOCUMENTATION
+Contains an rxtx message.
 
 
