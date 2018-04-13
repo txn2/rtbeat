@@ -1,0 +1,54 @@
+#
+# Use this Docker Compose configuration for testing the rtbeat. We don't
+# need Logstash in the the basic configuration however you can uncomment it
+# if you wish to send data though Logstash.
+#
+# Credit: https://github.com/deviantony/docker-elk
+version: '2'
+
+services:
+
+  elasticsearch:
+    build:
+      context: docker-elk/elasticsearch/
+    volumes:
+      - ./docker-elk/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elk
+
+  kibana:
+    build:
+      context: docker-elk/kibana/
+    volumes:
+      - ./docker-elk/kibana/config/:/usr/share/kibana/config:ro
+    ports:
+      - "5601:5601"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+#  logstash:
+#    build:
+#      context: docker-elk/logstash/
+#    volumes:
+#      - ./docker-elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+#      - ./docker-elk/logstash/pipeline:/usr/share/logstash/pipeline:ro
+#    ports:
+#      - "5000:5000"
+#    environment:
+#      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+#    networks:
+#      - elk
+#    depends_on:
+#      - elasticsearch
+
+networks:
+
+  elk:
+    driver: bridge
