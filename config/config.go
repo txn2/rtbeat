@@ -4,9 +4,11 @@
 package config
 
 type Config struct {
-	Port string `config:"port"`
+	Port    string `config:"port"`
+	Timeout int    `config:"timeout"`
 }
 
 var DefaultConfig = Config{
-	Port: "8081",
+	Port:    "8081",
+	Timeout: 5,
 }

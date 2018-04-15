@@ -3,5 +3,7 @@
 ############################# Rtbeat ######################################
 
 rtbeat:
-  # Defines how often an event is sent to the output
+  # HTTP server port
   port: "8081"
+  # timeout
+  timeout: 5

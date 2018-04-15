@@ -45,7 +45,12 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 	logp.Info("rtbeat is running! Hit CTRL-C to stop it.")
 
 	var err error
-	bt.client, err = b.Publisher.Connect()
+	bt.client, err = b.Publisher.ConnectWith(beat.ClientConfig{
+		//PublishMode: beat.GuaranteedSend,
+		ACKCount: func(i int) {
+			fmt.Printf("-----> Count -----> %d\n", i)
+		},
+	})
 	if err != nil {
 		return err
 	}
@@ -77,25 +82,31 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 			return
 		}
 
-		events := make([]beat.Event, 1)
-		var event = beat.Event{}
-
-		for _, message := range msg.Messages {
-			event = beat.Event{
-				Timestamp: time.Now(),
-				Fields: common.MapStr{
-					"type":    b.Info.Name,
-					"rxtxMsg": message,
-				},
-			}
-			events = append(events, event)
-		}
-
-		bt.client.PublishAll(events)
-
+		// respond quickly to avoid getting a re-send from the server
 		c.JSON(200, gin.H{
 			"status": "OK",
 		})
+
+		// fie this in the background
+		go func() {
+			events := make([]beat.Event, 1)
+			var event = beat.Event{}
+
+			for i, message := range msg.Messages {
+				event = beat.Event{
+					Timestamp: time.Now(),
+					Fields: common.MapStr{
+						"type":    b.Info.Name,
+						"rxtxMsg": message,
+					},
+					Private: i,
+				}
+				events = append(events, event)
+			}
+
+			// TODO check for published state
+			bt.client.PublishAll(events)
+		}()
 
 	})
 
@@ -111,15 +122,18 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 		}
 	}()
 
+	// block waiting for done
 	for {
 		select {
 		case <-bt.done:
+			fmt.Printf(" -----------------------> GOT DONE..... ")
 			// shutdown the web server
 			ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 			srv.Shutdown(ctx)
 			return nil
 		}
 	}
+
 }
 
 // Stop the beat
