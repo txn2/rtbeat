@@ -1,31 +1,20 @@
 # Rtbeat
 
-Welcome to Rtbeat.
+Rtbeat processes HTTP POST data from rxtx and publishes events into
 
-Ensure that this folder is at the following location:
-`${GOPATH}/src/github.com/cjimti/rtbeat`
-
-## Getting Started with Rtbeat
+# Rtbeat Development
 
 ### Requirements
 
-* [Golang](https://golang.org/dl/) 1.7
+* [Golang](https://golang.org/dl/) 1.7 or greater.
 
-### Init Project
-To get running with Rtbeat and also install the
-dependencies, run the following command:
+### Clone
 
-```
-make setup
-```
-
-It will create a clean git history for each major step. Note that you can always rewrite the history if you wish before pushing your changes.
-
-To push Rtbeat in the git repository, run the following commands:
+To clone Rtbeat from the git repository, run the following commands:
 
 ```
-git remote set-url origin https://github.com/cjimti/rtbeat
-git push origin master
+mkdir -p ${GOPATH}/src/github.com/cjimti/rtbeat
+git clone https://github.com/cjimti/rtbeat ${GOPATH}/src/github.com/cjimti/rtbeat
 ```
 
 For further development, check out the [beat developer guide](https://www.elastic.co/guide/en/beats/libbeat/current/new-beat.html).
@@ -39,7 +28,6 @@ in the same directory with the name rtbeat.
 make
 ```
 
-
 ### Run
 
 To run Rtbeat with debugging output enabled, run:
@@ -47,7 +35,6 @@ To run Rtbeat with debugging output enabled, run:
 ```
 ./rtbeat -c rtbeat.yml -e -d "*"
 ```
-
 
 ### Test
 
@@ -76,15 +63,7 @@ which is automatically generated based on `fields.yml` by running the following 
 make update
 ```
 
-
 ### Cleanup
-
-To clean  Rtbeat source code, run the following commands:
-
-```
-make fmt
-make simplify
-```
 
 To clean up the build directory and generated artifacts, run:
 
@@ -92,23 +71,9 @@ To clean up the build directory and generated artifacts, run:
 make clean
 ```
 
-
-### Clone
-
-To clone Rtbeat from the git repository, run the following commands:
-
-```
-mkdir -p ${GOPATH}/src/github.com/cjimti/rtbeat
-git clone https://github.com/cjimti/rtbeat ${GOPATH}/src/github.com/cjimti/rtbeat
-```
-
-
-For further development, check out the [beat developer guide](https://www.elastic.co/guide/en/beats/libbeat/current/new-beat.html).
-
-
 ## Packaging
 
-The beat frameworks provides tools to crosscompile and package your beat for different platforms. This requires [docker](https://www.docker.com/) and vendoring as described above. To build packages of your beat, run the following command:
+The beat frameworks provides tools to crosscompile and package your beat for different platforms. This requires [docker](https://www.docker.com/) and vendoring as described above. To build packages of the rt beat, run the following command:
 
 ```
 make package
