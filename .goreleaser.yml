@@ -1,0 +1,62 @@
+
+before:
+  hooks:
+  - make clean
+  - make update
+  - make
+
+# Archive customization
+archive:
+  # You can change the name of the archive.
+  # This is parsed with Golang template engine and the following variables.
+  name_template: "{{.ProjectName}}_{{.Os}}_{{.Arch}}"
+
+  # Archive format. Valid options are `tar.gz` and `zip`.
+  # Default is `zip`
+  format: tar.gz
+
+  # Additional files you want to add to the archive.
+  # Defaults are any files matching `LICENCE*`, `LICENSE*`,
+  # `README*` and `CHANGELOG*` (case-insensitive)
+  files:
+    - LICENSE
+    - rtbeat.yml
+    - rtbeat.refrence.yml
+
+dockers:
+  -
+    goos: linux
+    goarch: amd64
+    goarm: ''
+    binary: rtbeat
+    image: cjimti/rtbeat
+    dockerfile: dockerfiles/amd64/Dockerfile
+    tag_templates:
+    - latest
+    - "{{ .Version }}"
+  -
+    goos: linux
+    goarch: arm
+    goarm: 6
+    binary: rtbeat
+    image: cjimti/rtbeat
+    dockerfile: dockerfiles/arm32v6/Dockerfile
+    tag_templates:
+    - "arm32v6-{{ .Version }}"
+
+brew:
+  name: rxtx
+
+  github:
+    owner: cjimti
+    name: homebrew-tap
+
+  commit_author:
+    name: Craig Johnston
+    email: cjimti@gmail.com
+
+  folder: Formula
+
+  homepage: https://github.com/cjimti/rtbeat
+
+  description: "Elastic Beat for rxtx."

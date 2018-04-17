@@ -80,3 +80,41 @@ make package
 ```
 
 This will fetch and create all images required for the build process. The whole process to finish can take several minutes.
+
+### Building and Releasing
+
+**rtBeat** uses [GORELEASER] to build binaries and [Docker] containers.
+
+#### Test Release Steps
+
+Install [GORELEASER] with [brew] (MacOS):
+```bash
+brew install goreleaser/tap/goreleaser
+```
+
+Build without releasing:
+```bash
+goreleaser --skip-publish --rm-dist --skip-validate
+```
+
+#### Release Steps
+
+- Commit latest changes
+- [Tag] a version `git tag -a v1.0 -m "Version 1.0"`
+- Push tag `git push origin v2.0`
+- Run: `GITHUB_TOKEN=$GITHUB_TOKEN goreleaser --rm-dist`
+
+## Resources
+
+- [GORELEASER]
+- [Docker]
+- [homebrew]
+
+
+
+
+[homebrew]: https://brew.sh/
+[brew]: https://brew.sh/
+[GORELEASER]: https://goreleaser.com/
+[Docker]: https://www.docker.com/
+[Tag]: https://git-scm.com/book/en/v2/Git-Basics-Tagging
