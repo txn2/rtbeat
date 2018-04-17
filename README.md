@@ -1,6 +1,15 @@
+![rxtx data transmission](mast-logo.jpg)
+[![irsync Release](https://img.shields.io/github/release/cjimti/rtbeat.svg)](https://github.com/cjimti/rtbeat/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cjimti/rtbeat)](https://goreportcard.com/report/github.com/cjimti/rtbeat)
+
+
+[![Docker Container Image Size](https://shields.beevelop.com/docker/image/image-size/cjimti/rtbeat/latest.svg)](https://hub.docker.com/r/cjimti/irsync/)
+[![Docker Container Layers](https://shields.beevelop.com/docker/image/layers/cjimti/rtbeat/latest.svg)](https://hub.docker.com/r/cjimti/rtbeat/)
+[![Docker Container Pulls](https://img.shields.io/docker/pulls/cjimti/rtbeat.svg)](https://hub.docker.com/r/cjimti/rtbeat/)
+
 # Rtbeat
 
-Rtbeat processes HTTP POST data from rxtx and publishes events into
+[Rtbeat](https://github.com/cjimti/rtbeat) processes HTTP POST data from [rxtx](https://github.com/cjimti/rxtx) and publishes events into [elasticsearch], [logstash], [kafka], [redis] or directly to log files.
 
 # Rtbeat Development
 
@@ -109,10 +118,16 @@ goreleaser --skip-publish --rm-dist --skip-validate
 - [GORELEASER]
 - [Docker]
 - [homebrew]
+- [elasticsearch]
+- [logstash]
+- [kafka]
+- [redis]
 
 
-
-
+[elasticsearch]: https://www.elastic.co/
+[logstash]: https://www.elastic.co/products/logstash
+[kafka]: https://kafka.apache.org/
+[redis]: https://redis.io/
 [homebrew]: https://brew.sh/
 [brew]: https://brew.sh/
 [GORELEASER]: https://goreleaser.com/
