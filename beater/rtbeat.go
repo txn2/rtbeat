@@ -48,7 +48,7 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 	bt.client, err = b.Publisher.ConnectWith(beat.ClientConfig{
 		//PublishMode: beat.GuaranteedSend,
 		ACKCount: func(i int) {
-			fmt.Printf("-----> Count -----> %d\n", i)
+			fmt.Printf("Count: %d\n", i)
 		},
 	})
 	if err != nil {
@@ -117,6 +117,7 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 
 	go func() {
 		// service connections
+		logp.Info("Waiting for rxtx POST data to: %s:/in", bt.config.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
@@ -126,7 +127,7 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 	for {
 		select {
 		case <-bt.done:
-			fmt.Printf(" -----------------------> GOT DONE..... ")
+			logp.Info("Shutting down web server.\n")
 			// shutdown the web server
 			ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 			srv.Shutdown(ctx)

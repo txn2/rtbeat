@@ -21,7 +21,7 @@ archive:
   files:
     - LICENSE
     - rtbeat.yml
-    - rtbeat.refrence.yml
+    - rtbeat.reference.yml
 
 dockers:
   -

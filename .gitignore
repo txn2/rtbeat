@@ -5,3 +5,4 @@
 /rtbeat
 /rtbeat.test
 *.pyc
+/dist
