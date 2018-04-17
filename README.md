@@ -1,8 +1,6 @@
-![rxtx data transmission](mast-logo.jpg)
+[![rxtx data transmission](https://raw.githubusercontent.com/cjimti/rtbeat/master/mast-logo.jpg)](https://github.com/cjimti/rtbeat)
 [![irsync Release](https://img.shields.io/github/release/cjimti/rtbeat.svg)](https://github.com/cjimti/rtbeat/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cjimti/rtbeat)](https://goreportcard.com/report/github.com/cjimti/rtbeat)
-
-
 [![Docker Container Image Size](https://shields.beevelop.com/docker/image/image-size/cjimti/rtbeat/latest.svg)](https://hub.docker.com/r/cjimti/irsync/)
 [![Docker Container Layers](https://shields.beevelop.com/docker/image/layers/cjimti/rtbeat/latest.svg)](https://hub.docker.com/r/cjimti/rtbeat/)
 [![Docker Container Pulls](https://img.shields.io/docker/pulls/cjimti/rtbeat.svg)](https://hub.docker.com/r/cjimti/rtbeat/)
