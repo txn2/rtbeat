@@ -96,8 +96,9 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 				event = beat.Event{
 					Timestamp: time.Now(),
 					Fields: common.MapStr{
-						"type":    b.Info.Name,
-						"rxtxMsg": message,
+						"type":     b.Info.Name,
+						"rxtxMsg":  message,
+						"clientIp": c.ClientIP(),
 					},
 					Private: i,
 				}
