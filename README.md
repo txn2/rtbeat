@@ -1,13 +1,13 @@
-[![rxtx data transmission](https://raw.githubusercontent.com/cjimti/rtbeat/master/mast-logo.jpg)](https://github.com/cjimti/rtbeat)
-[![irsync Release](https://img.shields.io/github/release/cjimti/rtbeat.svg)](https://github.com/cjimti/rtbeat/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/cjimti/rtbeat)](https://goreportcard.com/report/github.com/cjimti/rtbeat)
-[![Docker Container Image Size](https://shields.beevelop.com/docker/image/image-size/cjimti/rtbeat/latest.svg)](https://hub.docker.com/r/cjimti/irsync/)
-[![Docker Container Layers](https://shields.beevelop.com/docker/image/layers/cjimti/rtbeat/latest.svg)](https://hub.docker.com/r/cjimti/rtbeat/)
-[![Docker Container Pulls](https://img.shields.io/docker/pulls/cjimti/rtbeat.svg)](https://hub.docker.com/r/cjimti/rtbeat/)
+[![rxtx data transmission](https://raw.githubusercontent.com/txn2/rtbeat/master/mast-logo.jpg)](https://github.com/txn2/rtbeat)
+[![irsync Release](https://img.shields.io/github/release/txn2/rtbeat.svg)](https://github.com/txn2/rtbeat/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/txn2/rtbeat)](https://goreportcard.com/report/github.com/txn2/rtbeat)
+[![Docker Container Image Size](https://shields.beevelop.com/docker/image/image-size/txn2/rtbeat/latest.svg)](https://hub.docker.com/r/txn2/irsync/)
+[![Docker Container Layers](https://shields.beevelop.com/docker/image/layers/txn2/rtbeat/latest.svg)](https://hub.docker.com/r/txn2/rtbeat/)
+[![Docker Container Pulls](https://img.shields.io/docker/pulls/txn2/rtbeat.svg)](https://hub.docker.com/r/txn2/rtbeat/)
 
 # Rtbeat
 
-[Rtbeat](https://github.com/cjimti/rtbeat) processes HTTP POST data from [rxtx](https://github.com/cjimti/rxtx) and publishes events into [elasticsearch], [logstash], [kafka], [redis] or directly to log files.
+[Rtbeat](https://github.com/txn2/rtbeat) processes HTTP POST data from [rxtx](https://github.com/txn2/rxtx) and publishes events into [elasticsearch], [logstash], [kafka], [redis] or directly to log files.
 
 # Rtbeat Development
 
@@ -20,8 +20,8 @@
 To clone Rtbeat from the git repository, run the following commands:
 
 ```
-mkdir -p ${GOPATH}/src/github.com/cjimti/rtbeat
-git clone https://github.com/cjimti/rtbeat ${GOPATH}/src/github.com/cjimti/rtbeat
+mkdir -p ${GOPATH}/src/github.com/txn2/rtbeat
+git clone https://github.com/txn2/rtbeat ${GOPATH}/src/github.com/txn2/rtbeat
 ```
 
 For further development, check out the [beat developer guide](https://www.elastic.co/guide/en/beats/libbeat/current/new-beat.html).

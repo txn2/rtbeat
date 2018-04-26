@@ -1,5 +1,5 @@
 BEAT_NAME=rtbeat
-BEAT_PATH=github.com/cjimti/rtbeat
+BEAT_PATH=github.com/txn2/rtbeat
 BEAT_GOPATH=$(firstword $(subst :, ,${GOPATH}))
 BEAT_URL=https://${BEAT_PATH}
 SYSTEM_TESTS=false

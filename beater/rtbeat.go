@@ -15,8 +15,8 @@ import (
 
 	"time"
 
-	"github.com/cjimti/rtbeat/config"
-	"github.com/cjimti/rxtx/rtq"
+	"github.com/txn2/rtbeat/config"
+	"github.com/txn2/rxtx/rtq"
 	"github.com/gin-gonic/gin"
 )
 

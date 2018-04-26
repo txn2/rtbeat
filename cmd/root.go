@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/cjimti/rtbeat/beater"
+	"github.com/txn2/rtbeat/beater"
 
 	cmd "github.com/elastic/beats/libbeat/cmd"
 )

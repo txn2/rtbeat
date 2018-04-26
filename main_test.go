@@ -6,7 +6,7 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/cjimti/rtbeat/cmd"
+	"github.com/txn2/rtbeat/cmd"
 )
 
 var systemTest *bool

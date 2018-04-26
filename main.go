@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/cjimti/rtbeat/cmd"
+	"github.com/txn2/rtbeat/cmd"
 )
 
 func main() {

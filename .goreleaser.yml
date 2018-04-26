@@ -29,7 +29,7 @@ dockers:
     goarch: amd64
     goarm: ''
     binary: rtbeat
-    image: cjimti/rtbeat
+    image: txn2/rtbeat
     dockerfile: dockerfiles/amd64/Dockerfile
     tag_templates:
     - latest
@@ -39,7 +39,7 @@ dockers:
     goarch: arm
     goarm: 6
     binary: rtbeat
-    image: cjimti/rtbeat
+    image: txn2/rtbeat
     dockerfile: dockerfiles/arm32v6/Dockerfile
     tag_templates:
     - "arm32v6-{{ .Version }}"
@@ -48,7 +48,7 @@ brew:
   name: rxtx
 
   github:
-    owner: cjimti
+    owner: txn2
     name: homebrew-tap
 
   commit_author:
@@ -57,6 +57,6 @@ brew:
 
   folder: Formula
 
-  homepage: https://github.com/cjimti/rtbeat
+  homepage: https://github.com/txn2/rtbeat
 
   description: "Elastic Beat for rxtx."
