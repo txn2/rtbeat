@@ -2,7 +2,7 @@
 before:
   hooks:
   - make clean
-  - make update
+#  - make update
   - make
 
 # Archive customization
