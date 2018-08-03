@@ -3,27 +3,27 @@ package beater
 import (
 	"context"
 	"fmt"
-
-	"github.com/elastic/beats/libbeat/beat"
-	"github.com/elastic/beats/libbeat/common"
-	"github.com/elastic/beats/libbeat/logp"
-
 	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
-
 	"time"
 
+	"github.com/elastic/beats/libbeat/beat"
+	"github.com/elastic/beats/libbeat/common"
+	"github.com/elastic/beats/libbeat/logp"
 	"github.com/txn2/rtbeat/config"
 	"github.com/txn2/rxtx/rtq"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type Rtbeat struct {
 	done   chan struct{}
 	config config.Config
 	client beat.Client
+	logger *zap.Logger
 }
 
 // New Creates beater
@@ -33,22 +33,41 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 		return nil, fmt.Errorf("error reading config file: %v", err)
 	}
 
+	zapCfg := zap.NewProductionConfig()
+	zapCfg.DisableCaller = true
+	zapCfg.DisableStacktrace = true
+
+	logger, err := zapCfg.Build()
+	if err != nil {
+		fmt.Printf("Can not build logger: %s\n", err.Error())
+		return nil, err
+	}
+
 	bt := &Rtbeat{
 		done:   make(chan struct{}),
 		config: c,
+		logger: logger,
 	}
 	return bt, nil
 }
 
 // Run the beat
 func (bt *Rtbeat) Run(b *beat.Beat) error {
-	logp.String("Status","rtbeat is running! Hit CTRL-C to stop it.")
+	bt.logger.Info("Run", zapcore.Field{
+		Key:    "Status",
+		Type:   zapcore.StringType,
+		String: "rtBeat is running! Hit CTRL-C to stop it.",
+	})
 
 	var err error
 	bt.client, err = b.Publisher.ConnectWith(beat.ClientConfig{
 		//PublishMode: beat.GuaranteedSend,
 		ACKCount: func(i int) {
-			logp.Int("ACKCount", i)
+			bt.logger.Info("Run", zapcore.Field{
+				Key:    "ACKCount",
+				Type:   zapcore.Int32Type,
+				Integer: int64(i),
+			})
 		},
 	})
 	if err != nil {
@@ -118,7 +137,14 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 
 	go func() {
 		// service connections
-		logp.String("Status","Waiting for rxtx POST data to: " + bt.config.Port + ":/in")
+		bt.logger.Info("Run",
+			zapcore.Field{
+				Key:    "State",
+				Type:   zapcore.StringType,
+				String: "Waiting for rxtx POST data to: " + bt.config.Port + ":/in",
+			},
+		)
+
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
@@ -128,7 +154,14 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 	for {
 		select {
 		case <-bt.done:
-			logp.String("Status", "Shutting down web server.")
+			bt.logger.Info("Run",
+				zapcore.Field{
+					Key:    "Status",
+					Type:   zapcore.StringType,
+					String: "Shutting down web server.",
+				},
+			)
+
 			// shutdown the web server
 			ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 			srv.Shutdown(ctx)

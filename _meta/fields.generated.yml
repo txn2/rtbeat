@@ -1,8 +1,0 @@
-- key: rtbeat
-  title: rtbeat
-  description:
-  fields:
-    - name: rxtxMessage
-      required: true
-      description: >
-        Contains an rxtx message.
