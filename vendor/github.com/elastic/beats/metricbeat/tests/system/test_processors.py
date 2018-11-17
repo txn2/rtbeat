@@ -34,8 +34,8 @@ class Test(metricbeat.BaseTest):
         print(evt)
         print(evt.keys())
         self.assertItemsEqual(self.de_dot([
-            'beat', '@timestamp', 'system', 'metricset.module',
-            'metricset.rtt', 'metricset.name'
+            'agent', '@timestamp', 'system', 'metricset.module',
+            'metricset.rtt', 'metricset.name', 'host'
         ]), evt.keys())
         cpu = evt["system"]["cpu"]
         print(cpu.keys())

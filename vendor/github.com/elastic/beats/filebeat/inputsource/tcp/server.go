@@ -1,27 +1,40 @@
+// Licensed to Elasticsearch B.V. under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. Elasticsearch B.V. licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 package tcp
 
 import (
 	"bufio"
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"sync"
 
+	"github.com/elastic/beats/filebeat/inputsource"
+	"github.com/elastic/beats/libbeat/common/transport/tlscommon"
 	"github.com/elastic/beats/libbeat/logp"
+	"github.com/elastic/beats/libbeat/outputs/transport"
 )
-
-// Metadata information about the remote host.
-type Metadata struct {
-	RemoteAddr net.Addr
-}
-
-// CallbackFunc receives new events read from the TCP socket.
-type CallbackFunc = func(data []byte, metadata Metadata)
 
 // Server represent a TCP server
 type Server struct {
 	sync.RWMutex
-	callback  CallbackFunc
+	callback  inputsource.NetworkFunc
 	config    *Config
 	Listener  net.Listener
 	clients   map[*client]struct{}
@@ -29,33 +42,39 @@ type Server struct {
 	done      chan struct{}
 	splitFunc bufio.SplitFunc
 	log       *logp.Logger
+	tlsConfig *transport.TLSConfig
 }
 
 // New creates a new tcp server
 func New(
-	callback CallbackFunc,
 	config *Config,
+	splitFunc bufio.SplitFunc,
+	callback inputsource.NetworkFunc,
 ) (*Server, error) {
-
-	if len(config.LineDelimiter) == 0 {
-		return nil, fmt.Errorf("empty line delimiter")
+	tlsConfig, err := tlscommon.LoadTLSServerConfig(config.TLS)
+	if err != nil {
+		return nil, err
 	}
 
-	sf := splitFunc([]byte(config.LineDelimiter))
+	if splitFunc == nil {
+		return nil, fmt.Errorf("SplitFunc can't be empty")
+	}
+
 	return &Server{
 		config:    config,
 		callback:  callback,
 		clients:   make(map[*client]struct{}, 0),
 		done:      make(chan struct{}),
-		splitFunc: sf,
+		splitFunc: splitFunc,
 		log:       logp.NewLogger("tcp").With("address", config.Host),
+		tlsConfig: tlsConfig,
 	}, nil
 }
 
 // Start listen to the TCP socket.
 func (s *Server) Start() error {
 	var err error
-	s.Listener, err = net.Listen("tcp", s.config.Host)
+	s.Listener, err = s.createServer()
 	if err != nil {
 		return err
 	}
@@ -89,11 +108,10 @@ func (s *Server) run() {
 			s.log,
 			s.callback,
 			s.splitFunc,
-			s.config.MaxMessageSize,
+			uint64(s.config.MaxMessageSize),
 			s.config.Timeout,
 		)
 
-		s.log.Debugw("New client", "address", conn.RemoteAddr(), "total", s.clientsCount())
 		s.wg.Add(1)
 		go func() {
 			defer logp.Recover("recovering from a tcp client crash")
@@ -102,13 +120,20 @@ func (s *Server) run() {
 
 			s.registerClient(client)
 			defer s.unregisterClient(client)
+			s.log.Debugw("New client", "remote_address", conn.RemoteAddr(), "total", s.clientsCount())
 
 			err := client.handle()
 			if err != nil {
 				s.log.Debugw("Client error", "error", err)
 			}
 
-			s.log.Debugw("Client disconnected", "address", conn.RemoteAddr(), "total", s.clientsCount())
+			defer s.log.Debugw(
+				"Client disconnected",
+				"remote_address",
+				conn.RemoteAddr(),
+				"total",
+				s.clientsCount(),
+			)
 		}()
 	}
 }
@@ -149,13 +174,23 @@ func (s *Server) allClients() []*client {
 	return currentClients
 }
 
+func (s *Server) createServer() (net.Listener, error) {
+	if s.tlsConfig != nil {
+		t := s.tlsConfig.BuildModuleConfig(s.config.Host)
+		s.log.Info("Listening over TLS")
+		return tls.Listen("tcp", s.config.Host, t)
+	}
+	return net.Listen("tcp", s.config.Host)
+}
+
 func (s *Server) clientsCount() int {
 	s.RLock()
 	defer s.RUnlock()
 	return len(s.clients)
 }
 
-func splitFunc(lineDelimiter []byte) bufio.SplitFunc {
+// SplitFunc allows to create a `bufio.SplitFunc` based on a delimiter provided.
+func SplitFunc(lineDelimiter []byte) bufio.SplitFunc {
 	ld := []byte(lineDelimiter)
 	if bytes.Equal(ld, []byte("\n")) {
 		// This will work for most usecases and will also strip \r if present.

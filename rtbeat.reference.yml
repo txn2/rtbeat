@@ -241,7 +241,7 @@ output.elasticsearch:
   # Optional index name. The default is "rtbeat" plus date
   # and generates [rtbeat-]YYYY.MM.DD keys.
   # In case you modify this pattern you must update setup.template.name and setup.template.pattern accordingly.
-  #index: "rtbeat-%{[beat.version]}-%{+yyyy.MM.dd}"
+  #index: "rtbeat-%{[beat.version]}-%{+yyyy.MM.DD}"
 
   # Optional ingest node pipeline. By default no pipeline will be used.
   #pipeline: ""

@@ -12,12 +12,15 @@ include::{asciidoc-dir}/../../shared/attributes.asciidoc[]
 :discuss_forum: beats/{beatname_lc}
 :beat_default_index_prefix: {beatname_lc}
 :has_ml_jobs: yes
+:deb_os:
+:rpm_os:
+:mac_os:
+:docker_platform:
+:win_os:
 
 include::../../libbeat/docs/shared-beats-attributes.asciidoc[]
 
 include::./overview.asciidoc[]
-
-include::../../libbeat/docs/contributing-to-beats.asciidoc[]
 
 include::./getting-started.asciidoc[]
 
@@ -39,12 +42,13 @@ include::./fields.asciidoc[]
 
 include::../../libbeat/docs/monitoring/monitoring-beats.asciidoc[]
 
-include::./securing-filebeat.asciidoc[]
-
-include::../../libbeat/docs/security/securing-beats.asciidoc[]
+include::../../libbeat/docs/shared-securing-beat.asciidoc[]
 
 include::./troubleshooting.asciidoc[]
 
 include::./faq.asciidoc[]
 
 include::./migration.asciidoc[]
+
+include::../../libbeat/docs/contributing-to-beats.asciidoc[]
+

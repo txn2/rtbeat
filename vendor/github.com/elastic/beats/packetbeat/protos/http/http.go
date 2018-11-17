@@ -1,3 +1,20 @@
+// Licensed to Elasticsearch B.V. under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. Elasticsearch B.V. licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 package http
 
 import (
@@ -7,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
@@ -14,7 +33,6 @@ import (
 
 	"github.com/elastic/beats/packetbeat/procs"
 	"github.com/elastic/beats/packetbeat/protos"
-	"github.com/elastic/beats/packetbeat/protos/tcp"
 )
 
 var debugf = logp.MakeDebug("http")
@@ -33,6 +51,7 @@ const (
 
 var (
 	unmatchedResponses = monitoring.NewInt(nil, "http.unmatched_responses")
+	unmatchedRequests  = monitoring.NewInt(nil, "http.unmatched_requests")
 )
 
 type stream struct {
@@ -67,6 +86,7 @@ type httpPlugin struct {
 	hideKeywords        []string
 	redactAuthorization bool
 	maxMessageSize      int
+	mustDecodeBody      bool
 
 	parserConfig parserConfig
 
@@ -122,6 +142,8 @@ func (http *httpPlugin) setFromConfig(config *httpConfig) {
 	http.splitCookie = config.SplitCookie
 	http.parserConfig.realIPHeader = strings.ToLower(config.RealIPHeader)
 	http.transactionTimeout = config.TransactionTimeout
+	http.mustDecodeBody = config.DecodeBody
+
 	for _, list := range [][]string{config.IncludeBodyFor, config.IncludeRequestBodyFor} {
 		http.parserConfig.includeRequestBodyFor = append(http.parserConfig.includeRequestBodyFor, list...)
 	}
@@ -398,7 +420,7 @@ func (http *httpPlugin) handleHTTP(
 
 	m.tcpTuple = *tcptuple
 	m.direction = dir
-	m.cmdlineTuple = procs.ProcWatcher.FindProcessesTuple(tcptuple.IPPort())
+	m.cmdlineTuple = procs.ProcWatcher.FindProcessesTupleTCP(tcptuple.IPPort())
 	http.hideHeaders(m)
 
 	if m.isRequest {
@@ -415,14 +437,31 @@ func (http *httpPlugin) handleHTTP(
 	}
 }
 
+func (http *httpPlugin) flushResponses(conn *httpConnectionData) {
+	for !conn.responses.empty() {
+		unmatchedResponses.Add(1)
+		resp := conn.responses.pop()
+		debugf("Response from unknown transaction: %s. Reporting error.", resp.tcpTuple)
+		event := http.newTransaction(nil, resp)
+		http.publishTransaction(event)
+	}
+}
+
+func (http *httpPlugin) flushRequests(conn *httpConnectionData) {
+	for !conn.requests.empty() {
+		unmatchedRequests.Add(1)
+		requ := conn.requests.pop()
+		debugf("Request from unknown transaction %s. Reporting error.", requ.tcpTuple)
+		event := http.newTransaction(requ, nil)
+		http.publishTransaction(event)
+	}
+}
+
 func (http *httpPlugin) correlate(conn *httpConnectionData) {
+
 	// drop responses with missing requests
 	if conn.requests.empty() {
-		for !conn.responses.empty() {
-			debugf("Response from unknown transaction. Ignoring.")
-			unmatchedResponses.Add(1)
-			conn.responses.pop()
-		}
+		http.flushResponses(conn)
 		return
 	}
 
@@ -441,74 +480,95 @@ func (http *httpPlugin) correlate(conn *httpConnectionData) {
 
 func (http *httpPlugin) newTransaction(requ, resp *message) beat.Event {
 	status := common.OK_STATUS
-	if resp.statusCode >= 400 {
+	if resp == nil {
+		status = common.ERROR_STATUS
+		if requ != nil {
+			requ.notes = append(requ.notes, "Unmatched request")
+		}
+	} else if resp.statusCode >= 400 {
 		status = common.ERROR_STATUS
 	}
-
-	// resp_time in milliseconds
-	responseTime := int32(resp.ts.Sub(requ.ts).Nanoseconds() / 1e6)
-
-	path, params, err := http.extractParameters(requ)
-	if err != nil {
-		logp.Warn("Fail to parse HTTP parameters: %v", err)
+	if requ == nil {
+		status = common.ERROR_STATUS
+		if resp != nil {
+			resp.notes = append(resp.notes, "Unmatched response")
+		}
 	}
 
-	src := common.Endpoint{
-		IP:   requ.tcpTuple.SrcIP.String(),
-		Port: requ.tcpTuple.SrcPort,
-		Proc: string(requ.cmdlineTuple.Src),
-	}
-	dst := common.Endpoint{
-		IP:   requ.tcpTuple.DstIP.String(),
-		Port: requ.tcpTuple.DstPort,
-		Proc: string(requ.cmdlineTuple.Dst),
-	}
-	if requ.direction == tcp.TCPDirectionReverse {
-		src, dst = dst, src
+	httpDetails := common.MapStr{}
+	fields := common.MapStr{
+		"type":   "http",
+		"status": status,
+		"http":   httpDetails,
 	}
 
-	httpDetails := common.MapStr{
-		"request": common.MapStr{
+	var timestamp time.Time
+
+	if requ != nil {
+		// Body must be decoded before extractParameters
+		http.decodeBody(requ)
+		path, params, err := http.extractParameters(requ)
+		if err != nil {
+			logp.Warn("Fail to parse HTTP parameters: %v", err)
+		}
+		httpDetails["request"] = common.MapStr{
 			"params":  params,
 			"headers": http.collectHeaders(requ),
-		},
-		"response": common.MapStr{
+		}
+		fields["method"] = requ.method
+		fields["path"] = path
+		fields["query"] = fmt.Sprintf("%s %s", requ.method, path)
+		fields["bytes_in"] = requ.size
+
+		fields["src"], fields["dst"] = requ.getEndpoints()
+
+		http.setBody(httpDetails["request"].(common.MapStr), requ)
+
+		timestamp = requ.ts
+
+		if len(requ.notes) > 0 {
+			fields["notes"] = requ.notes
+		}
+
+		if len(requ.realIP) > 0 {
+			fields["real_ip"] = requ.realIP
+		}
+
+		if http.sendRequest {
+			fields["request"] = string(http.makeRawMessage(requ))
+		}
+	}
+
+	if resp != nil {
+		http.decodeBody(resp)
+		httpDetails["response"] = common.MapStr{
 			"code":    resp.statusCode,
 			"phrase":  resp.statusPhrase,
 			"headers": http.collectHeaders(resp),
-		},
+		}
+		http.setBody(httpDetails["response"].(common.MapStr), resp)
+		fields["bytes_out"] = resp.size
+
+		if http.sendResponse {
+			fields["response"] = string(http.makeRawMessage(resp))
+		}
+
+		if len(resp.notes) > 0 {
+			if fields["notes"] != nil {
+				fields["notes"] = append(fields["notes"].([]string), resp.notes...)
+			} else {
+				fields["notes"] = resp.notes
+			}
+		}
+		if requ == nil {
+			timestamp = resp.ts
+			fields["src"], fields["dst"] = resp.getEndpoints()
+		}
 	}
 
-	http.setBody(httpDetails["request"].(common.MapStr), requ)
-	http.setBody(httpDetails["response"].(common.MapStr), resp)
-
-	timestamp := requ.ts
-	fields := common.MapStr{
-		"type":         "http",
-		"status":       status,
-		"responsetime": responseTime,
-		"method":       requ.method,
-		"path":         path,
-		"query":        fmt.Sprintf("%s %s", requ.method, path),
-		"http":         httpDetails,
-		"bytes_out":    resp.size,
-		"bytes_in":     requ.size,
-		"src":          &src,
-		"dst":          &dst,
-	}
-
-	if http.sendRequest {
-		fields["request"] = http.makeRawMessage(requ)
-	}
-	if http.sendResponse {
-		fields["response"] = http.makeRawMessage(resp)
-	}
-
-	if len(requ.notes)+len(resp.notes) > 0 {
-		fields["notes"] = append(requ.notes, resp.notes...)
-	}
-	if len(requ.realIP) > 0 {
-		fields["real_ip"] = requ.realIP
+	// resp_time in milliseconds
+	if requ != nil && resp != nil {
+		fields["responsetime"] = int32(resp.ts.Sub(requ.ts).Nanoseconds() / 1e6)
 	}
 
 	return beat.Event{
@@ -518,13 +578,14 @@ func (http *httpPlugin) newTransaction(requ, resp *message) beat.Event {
 }
 
 func (http *httpPlugin) makeRawMessage(m *message) string {
-	var result []byte
-	result = append(result, m.rawHeaders...)
 	if m.sendBody {
-		result = append(result, m.body...)
+		var b strings.Builder
+		b.Grow(len(m.rawHeaders) + len(m.body))
+		b.Write(m.rawHeaders)
+		b.Write(m.body)
+		return b.String()
 	}
-	// TODO: (go1.10) Use strings.Builder to avoid allocation/copying
-	return string(result)
+	return string(m.rawHeaders)
 }
 
 func (http *httpPlugin) publishTransaction(event beat.Event) {
@@ -570,6 +631,38 @@ func (http *httpPlugin) setBody(result common.MapStr, m *message) {
 	if m.sendBody && len(m.body) > 0 {
 		result["body"] = string(m.body)
 	}
+}
+
+func (http *httpPlugin) decodeBody(m *message) {
+	if m.saveBody && len(m.body) > 0 {
+		if http.mustDecodeBody && len(m.encodings) > 0 {
+			var err error
+			m.body, err = decodeBody(m.body, m.encodings, http.maxMessageSize)
+			if err != nil {
+				// Body can contain partial data
+				m.notes = append(m.notes, err.Error())
+			}
+		}
+	}
+}
+
+func decodeBody(body []byte, encodings []string, maxSize int) (result []byte, err error) {
+	if isDebug {
+		debugf("decoding body with encodings=%v", encodings)
+	}
+	for idx := len(encodings) - 1; idx >= 0; idx-- {
+		format := encodings[idx]
+		body, err = decodeHTTPBody(body, format, maxSize)
+		if err != nil {
+			// Do not output a partial body unless failure occurs on the
+			// last decoder.
+			if idx != 0 {
+				body = nil
+			}
+			return body, errors.Wrapf(err, "unable to decode body using %s encoding", format)
+		}
+	}
+	return body, nil
 }
 
 func splitCookiesHeader(headerVal string) map[string]string {
@@ -704,6 +797,33 @@ func (http *httpPlugin) isSecretParameter(key string) bool {
 		}
 	}
 	return false
+}
+
+func (http *httpPlugin) Expired(tuple *common.TCPTuple, private protos.ProtocolData) {
+	conn := getHTTPConnection(private)
+	if conn == nil {
+		return
+	}
+	if isDebug {
+		debugf("expired connection %s", tuple)
+	}
+	// terminate streams
+	for dir, s := range conn.streams {
+		// Do not send incomplete or empty messages
+		if s != nil && s.message != nil && s.message.headersReceived() {
+			if isDebug {
+				debugf("got message %+v", s.message)
+			}
+			http.handleHTTP(conn, s.message, tuple, uint8(dir))
+			s.PrepareForNewMessage()
+		}
+	}
+	// correlate transactions
+	http.correlate(conn)
+
+	// flush uncorrelated requests and responses
+	http.flushRequests(conn)
+	http.flushResponses(conn)
 }
 
 func (ml *messageList) append(msg *message) {

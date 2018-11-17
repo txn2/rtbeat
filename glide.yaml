@@ -1,0 +1,25 @@
+package: github.com/txn2/rtbeat
+import:
+- package: github.com/elastic/beats
+  version: ^7.0.0-alpha1
+  subpackages:
+  - libbeat/beat
+  - libbeat/cmd
+  - libbeat/common
+  - libbeat/logp
+- package: github.com/gin-gonic/gin
+  version: ^1.3.0
+- package: github.com/prometheus/client_golang
+  version: ^0.9.1
+  subpackages:
+  - prometheus
+  - prometheus/promauto
+  - prometheus/promhttp
+- package: github.com/txn2/rxtx
+  version: ^1.3.2
+  subpackages:
+  - rtq
+- package: go.uber.org/zap
+  version: ^1.9.1
+  subpackages:
+  - zapcore
