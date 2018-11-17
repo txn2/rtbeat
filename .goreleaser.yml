@@ -34,15 +34,6 @@ dockers:
     tag_templates:
     - latest
     - "{{ .Version }}"
-  -
-    goos: linux
-    goarch: arm
-    goarm: 6
-    binary: rtbeat
-    image: txn2/rtbeat
-    dockerfile: dockerfiles/arm32v6/Dockerfile
-    tag_templates:
-    - "arm32v6-{{ .Version }}"
 
 brew:
   name: rxtx
