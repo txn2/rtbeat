@@ -31,7 +31,7 @@ require (
 	github.com/elastic/beats/v7 v7.17.29
 	github.com/gin-gonic/gin v1.12.0
 	github.com/prometheus/client_golang v1.23.2
-	github.com/txn2/rxtx v1.3.2
+	github.com/txn2/rxtx v1.5.2
 	go.uber.org/zap v1.28.0
 )
 

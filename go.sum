@@ -430,8 +430,8 @@ github.com/tsg/gopacket v0.0.0-20200626092518-2ab8e397a786 h1:B/IVHYiI0d04dudYw+
 github.com/tsg/gopacket v0.0.0-20200626092518-2ab8e397a786/go.mod h1:RIkfovP3Y7my19aXEjjbNd9E5TlHozzAyt7B8AaEcwg=
 github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS4MhqMhdFk5YI=
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
-github.com/txn2/rxtx v1.3.2 h1:MF5s8BjLfqP2iinLfgNF2FO+6EFBCKEroa8gGu1wMdA=
-github.com/txn2/rxtx v1.3.2/go.mod h1:WQzYIFlVjK/hHI/UStLVjO5tcBRR7H55I0g8N3mQzm4=
+github.com/txn2/rxtx v1.5.2 h1:7GgSIAsiy5JgADU9mUDqpuWZT+6CEqzrafwUh769HHc=
+github.com/txn2/rxtx v1.5.2/go.mod h1:WQzYIFlVjK/hHI/UStLVjO5tcBRR7H55I0g8N3mQzm4=
 github.com/ugorji/go/codec v1.3.1 h1:waO7eEiFDwidsBN6agj1vJQ4AG7lh2yqXyOXqhgQuyY=
 github.com/ugorji/go/codec v1.3.1/go.mod h1:pRBVtBSKl77K30Bv8R2P+cLSGaTtex6fsA2Wjqmfxj4=
 github.com/urso/diag v0.0.0-20200210123136-21b3cc8eb797 h1:OHNw/6pXODJAB32NujjdQO/KIYQ3KAbHQfCzH81XdCs=
