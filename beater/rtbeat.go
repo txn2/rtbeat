@@ -106,54 +106,9 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 	// get a router
 	r := gin.Default()
 
-	r.POST("/in", func(c *gin.Context) {
-
-		// increment batches
-		batches.Inc()
-		msg := &rtq.MessageBatch{}
-
-		rawData, _ := c.GetRawData()
-
-		err := json.Unmarshal(rawData, &msg)
-		if err != nil {
-			c.JSON(500, gin.H{
-				"status":  "FAIL",
-				"message": fmt.Sprintf("could not unmarshal json: %s", rawData),
-			})
-
-			bt.logger.Error("Run", zap.String("error", "could not unmarshal json"), zap.Error(err))
-			return
-		}
-
-		// respond quickly to avoid getting a re-send from the server
-		c.JSON(200, gin.H{
-			"status": "OK",
-		})
-
-		// fie this in the background
-		go func() {
-			events := make([]beat.Event, 1)
-			var event beat.Event
-
-			for i, message := range msg.Messages {
-				messages.Inc()
-				event = beat.Event{
-					Timestamp: time.Now(),
-					Fields: common.MapStr{
-						"type":     b.Info.Name,
-						"rxtxMsg":  message,
-						"clientIp": c.ClientIP(),
-					},
-					Private: i,
-				}
-				events = append(events, event)
-			}
-
-			// TODO check for published state
-			bt.client.PublishAll(events)
-		}()
-
-	})
+	r.POST("/in", inHandler(b.Info.Name, bt.logger, bt.client, batches.Inc, func(n int) {
+		messages.Add(float64(n))
+	}))
 
 	// Prometheus Metrics
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
@@ -199,4 +154,63 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 func (bt *Rtbeat) Stop() {
 	_ = bt.client.Close()
 	close(bt.done)
+}
+
+// eventPublisher is the subset of beat.Client the /in handler needs. It lets
+// tests substitute a fake for the libbeat publisher pipeline.
+type eventPublisher interface {
+	PublishAll([]beat.Event)
+}
+
+// buildEvents converts an rxtx MessageBatch into the beat.Event slice rtbeat
+// publishes. Each message becomes one event carrying the original message under
+// "rxtxMsg" alongside "type" and "clientIp". The slice is pre-sized with one
+// leading zero-value event; this is long-standing behavior, preserved here
+// intentionally (changing it is tracked separately).
+func buildEvents(beatName, clientIP string, msg *rtq.MessageBatch) []beat.Event {
+	events := make([]beat.Event, 1)
+	for i, message := range msg.Messages {
+		events = append(events, beat.Event{
+			Timestamp: time.Now(),
+			Fields: common.MapStr{
+				"type":     beatName,
+				"rxtxMsg":  message,
+				"clientIp": clientIP,
+			},
+			Private: i,
+		})
+	}
+	return events
+}
+
+// inHandler builds the POST /in gin handler. Metric updates are injected as
+// callbacks (onBatch, onMessages) so the handler can be exercised in tests
+// without registering against the global prometheus registry. The handler
+// responds before publishing so a slow output never blocks the rxtx client.
+func inHandler(beatName string, logger *zap.Logger, pub eventPublisher, onBatch func(), onMessages func(n int)) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		onBatch()
+
+		msg := &rtq.MessageBatch{}
+		rawData, _ := c.GetRawData()
+
+		if err := json.Unmarshal(rawData, &msg); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  "FAIL",
+				"message": fmt.Sprintf("could not unmarshal json: %s", rawData),
+			})
+			logger.Error("Run", zap.String("error", "could not unmarshal json"), zap.Error(err))
+			return
+		}
+
+		// respond quickly to avoid getting a re-send from the server
+		c.JSON(http.StatusOK, gin.H{"status": "OK"})
+
+		onMessages(len(msg.Messages))
+		// Capture the client IP synchronously: the gin context is recycled
+		// once the handler returns, so it must not be read from the goroutine.
+		events := buildEvents(beatName, c.ClientIP(), msg)
+
+		go pub.PublishAll(events)
+	}
 }
