@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -14,9 +14,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-	"github.com/elastic/beats/libbeat/beat"
-	"github.com/elastic/beats/libbeat/common"
-	"github.com/elastic/beats/libbeat/logp"
+	"github.com/elastic/beats/v7/libbeat/beat"
+	"github.com/elastic/beats/v7/libbeat/common"
+	"github.com/elastic/beats/v7/libbeat/common/acker"
 	"github.com/gin-gonic/gin"
 	"github.com/txn2/rtbeat/config"
 	"github.com/txn2/rxtx/rtq"
@@ -82,7 +82,7 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 	var err error
 	bt.client, err = b.Publisher.ConnectWith(beat.ClientConfig{
 		//PublishMode: beat.GuaranteedSend,
-		ACKCount: func(i int) {
+		ACKHandler: acker.RawCounting(func(i int) {
 			bt.logger.Info("Run", zapcore.Field{
 				Key:     "ACKCount",
 				Type:    zapcore.Int32Type,
@@ -90,7 +90,7 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 			})
 			currentAcks.Set(float64(i))
 			totalAcks.Add(float64(i))
-		},
+		}),
 	})
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 	gin.DisableConsoleColor()
 
 	// discard default logger
-	gin.DefaultWriter = ioutil.Discard
+	gin.DefaultWriter = io.Discard
 
 	//get a router
 	r := gin.Default()
@@ -121,7 +121,7 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 				"message": fmt.Sprintf("could not unmarshal json: %s", rawData),
 			})
 
-			logp.Error(err)
+			bt.logger.Error("Run", zap.String("error", "could not unmarshal json"), zap.Error(err))
 			return
 		}
 
@@ -191,8 +191,9 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 			)
 
 			// shutdown the web server
-			ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-			srv.Shutdown(ctx)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			_ = srv.Shutdown(ctx)
+			cancel()
 			return nil
 		}
 	}
