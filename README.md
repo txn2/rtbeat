@@ -1,6 +1,7 @@
 [![rxtx data transmission](https://raw.githubusercontent.com/txn2/rtbeat/master/mast-logo.jpg)](https://github.com/txn2/rtbeat)
 [![Release](https://img.shields.io/github/release/txn2/rtbeat.svg)](https://github.com/txn2/rtbeat/releases)
 [![CI](https://github.com/txn2/rtbeat/actions/workflows/ci.yml/badge.svg)](https://github.com/txn2/rtbeat/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/txn2/rtbeat/graph/badge.svg)](https://codecov.io/gh/txn2/rtbeat)
 [![Go Report Card](https://goreportcard.com/badge/github.com/txn2/rtbeat)](https://goreportcard.com/report/github.com/txn2/rtbeat)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/txn2/rtbeat/badge)](https://securityscorecards.dev/viewer/?uri=github.com/txn2/rtbeat)
 [![Docker Pulls](https://img.shields.io/docker/pulls/txn2/rtbeat.svg)](https://hub.docker.com/r/txn2/rtbeat/)
