@@ -14,6 +14,11 @@ updates:
     # beats line manually; let dependabot surface everything else.
     ignore:
       - dependency-name: "github.com/elastic/beats/v7"
+      # rxtx is pinned to v1.3.2 to preserve the rtq.MessageBatch wire
+      # format; v2 reintroduces broken legacy transitive deps. Allow
+      # patch/minor within v1, never the v2 major bump.
+      - dependency-name: "github.com/txn2/rxtx"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -28,7 +33,9 @@ updates:
     ignore:
       # SLSA generator v2.1.x has a privacy-check false positive that halts
       # provenance generation on public repos. Pinned to v2.0.0 in release.yml.
-      - dependency-name: "slsa-framework/slsa-github-generator"
+      # The dependency-name for a reusable workflow is its full path, so match
+      # with a wildcard (the bare repo name does not match).
+      - dependency-name: "slsa-framework/slsa-github-generator*"
         versions: ["2.1.x"]
 
   # Docker
