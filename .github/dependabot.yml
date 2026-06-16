@@ -1,0 +1,43 @@
+version: 2
+updates:
+  # Go modules
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"
+    labels:
+      - "dependencies"
+      - "go"
+    # libbeat drags a large, tightly-coupled dependency tree. Pin the
+    # beats line manually; let dependabot surface everything else.
+    ignore:
+      - dependency-name: "github.com/elastic/beats/v7"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    ignore:
+      # SLSA generator v2.1.x has a privacy-check false positive that halts
+      # provenance generation on public repos. Pinned to v2.0.0 in release.yml.
+      - dependency-name: "slsa-framework/slsa-github-generator"
+        versions: ["2.1.x"]
+
+  # Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "docker"
+    labels:
+      - "dependencies"
+      - "docker"

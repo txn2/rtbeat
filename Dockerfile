@@ -1,6 +1,6 @@
-FROM arm32v6/alpine:3.7
+FROM alpine:3.21
 RUN apk --no-cache add ca-certificates
-RUN apk update && apk add rsync
-COPY rtbeat /
+COPY rtbeat /rtbeat
 WORKDIR /
+EXPOSE 8081
 ENTRYPOINT ["/rtbeat"]

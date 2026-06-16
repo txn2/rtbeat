@@ -1,49 +1,94 @@
-BEAT_NAME=rtbeat
-BEAT_PATH=github.com/txn2/rtbeat
-BEAT_GOPATH=$(firstword $(subst :, ,${GOPATH}))
-BEAT_URL=https://${BEAT_PATH}
-SYSTEM_TESTS=false
-TEST_ENVIRONMENT=false
-ES_BEATS?=./vendor/github.com/elastic/beats
-GOPACKAGES=$(shell govendor list -no-status +local)
-PREFIX?=.
-NOTICE_FILE=NOTICE
-GOBUILD_FLAGS=-i -ldflags "-X $(BEAT_PATH)/vendor/github.com/elastic/beats/libbeat/version.buildTime=$(NOW) -X $(BEAT_PATH)/vendor/github.com/elastic/beats/libbeat/version.commit=$(COMMIT_ID)"
+# rtbeat — local verification matching CI.
+#
+# Run `make verify` before pushing. It runs the same checks the CI
+# pipeline does (lint, test, build, tidy, action-pin validation) so you
+# don't find out from a red PR.
 
-# Path to the libbeat Makefile
--include $(ES_BEATS)/libbeat/scripts/Makefile
+# Versions — keep in sync with .github/workflows/ci.yml.
+GOLANGCI_LINT_VERSION ?= v2.12.1
+GO_VERSION_REQUIRED   ?= 1.26
 
-# Initial beat setup
-.PHONY: setup
-setup: copy-vendor
-	$(MAKE) update
+# Local cache for tooling we install on demand.
+TOOLS_BIN := $(CURDIR)/.tools/bin
+GOLANGCI_LINT := $(TOOLS_BIN)/golangci-lint
 
-# Copy beats into vendor directory
-.PHONY: copy-vendor
-copy-vendor:
-	mkdir -p vendor/github.com/elastic/
-	cp -R ${BEAT_GOPATH}/src/github.com/elastic/beats vendor/github.com/elastic/
-	rm -rf vendor/github.com/elastic/beats/.git
+GO ?= go
 
-.PHONY: git-init
-git-init:
-	git init
-	git add README.md CONTRIBUTING.md
-	git commit -m "Initial commit"
-	git add LICENSE
-	git commit -m "Add the LICENSE"
-	git add .gitignore
-	git commit -m "Add git settings"
-	git add .
-	git reset -- .travis.yml
-	git commit -m "Add rtbeat"
-	git add .travis.yml
-	git commit -m "Add Travis CI"
+.DEFAULT_GOAL := verify
 
-# This is called by the beats packer before building starts
-.PHONY: before-build
-before-build:
+.PHONY: verify
+verify: check-go-version tidy-check lint test build validate-actions
+	@echo ""
+	@echo "==> verify: all checks passed"
 
-# Collects all dependencies and then calls update
-.PHONY: collect
-collect:
+.PHONY: check-go-version
+check-go-version:
+	@have=$$($(GO) env GOVERSION | sed 's/^go//'); \
+	want=$(GO_VERSION_REQUIRED); \
+	case "$$have" in \
+	  $$want|$$want.*) echo "==> go $$have (matches $$want.x)";; \
+	  *) echo "ERROR: local go is $$have, CI uses $$want.x. Install matching toolchain." >&2; exit 1;; \
+	esac
+
+# Verify go.mod / go.sum are tidy without rewriting in place.
+.PHONY: tidy-check
+tidy-check:
+	@echo "==> go mod tidy (check)"
+	@tmp=$$(mktemp -d); cp go.mod go.sum "$$tmp/"; \
+	$(GO) mod tidy; \
+	if ! diff -q "$$tmp/go.mod" go.mod >/dev/null || ! diff -q "$$tmp/go.sum" go.sum >/dev/null; then \
+	  echo "ERROR: go.mod/go.sum are not tidy. Run 'go mod tidy' and commit." >&2; \
+	  diff -u "$$tmp/go.mod" go.mod || true; \
+	  diff -u "$$tmp/go.sum" go.sum || true; \
+	  cp "$$tmp/go.mod" "$$tmp/go.sum" .; \
+	  rm -rf "$$tmp"; \
+	  exit 1; \
+	fi; \
+	rm -rf "$$tmp"
+
+.PHONY: tidy
+tidy:
+	$(GO) mod tidy
+
+.PHONY: build
+build:
+	@echo "==> go build"
+	CGO_ENABLED=0 $(GO) build -o rtbeat .
+
+.PHONY: test
+test:
+	@echo "==> go test (race + coverage, matches CI)"
+	$(GO) test -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+# Install the exact golangci-lint version CI uses, into a local cache.
+$(GOLANGCI_LINT):
+	@echo "==> installing golangci-lint $(GOLANGCI_LINT_VERSION)"
+	@mkdir -p $(TOOLS_BIN)
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/main/install.sh \
+		| sh -s -- -b $(TOOLS_BIN) $(GOLANGCI_LINT_VERSION)
+
+.PHONY: lint
+lint: $(GOLANGCI_LINT)
+	@echo "==> golangci-lint $(GOLANGCI_LINT_VERSION)"
+	$(GOLANGCI_LINT) run --timeout=5m
+
+.PHONY: validate-actions
+validate-actions:
+	@echo "==> validating GitHub Action SHA pins"
+	./scripts/validate-action-shas.sh
+
+.PHONY: clean
+clean:
+	rm -rf coverage.txt rtbeat dist $(TOOLS_BIN) .tools
+
+.PHONY: help
+help:
+	@echo "Targets:"
+	@echo "  verify           lint + test + build + tidy-check + action pins"
+	@echo "  lint             golangci-lint (auto-installs $(GOLANGCI_LINT_VERSION) to .tools/)"
+	@echo "  test             go test -race with coverage profile"
+	@echo "  build            CGO_ENABLED=0 go build -o rtbeat ."
+	@echo "  tidy             go mod tidy"
+	@echo "  tidy-check       fail if go.mod/go.sum are not tidy"
+	@echo "  validate-actions check GitHub Action SHA pins"
+	@echo "  clean            remove build output and tool cache"

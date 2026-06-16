@@ -32,7 +32,7 @@ type Rtbeat struct {
 }
 
 // New Creates beater
-func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
+func New(_ *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 	c := config.DefaultConfig
 	if err := cfg.Unpack(&c); err != nil {
 		return nil, fmt.Errorf("error reading config file: %v", err)
@@ -103,7 +103,7 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 	// discard default logger
 	gin.DefaultWriter = io.Discard
 
-	//get a router
+	// get a router
 	r := gin.Default()
 
 	r.POST("/in", func(c *gin.Context) {
@@ -133,7 +133,7 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 		// fie this in the background
 		go func() {
 			events := make([]beat.Event, 1)
-			var event = beat.Event{}
+			var event beat.Event
 
 			for i, message := range msg.Messages {
 				messages.Inc()
@@ -179,29 +179,24 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 	}()
 
 	// block waiting for done
-	for {
-		select {
-		case <-bt.done:
-			bt.logger.Info("Run",
-				zapcore.Field{
-					Key:    "Status",
-					Type:   zapcore.StringType,
-					String: "Shutting down web server.",
-				},
-			)
+	<-bt.done
+	bt.logger.Info("Run",
+		zapcore.Field{
+			Key:    "Status",
+			Type:   zapcore.StringType,
+			String: "Shutting down web server.",
+		},
+	)
 
-			// shutdown the web server
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			_ = srv.Shutdown(ctx)
-			cancel()
-			return nil
-		}
-	}
-
+	// shutdown the web server
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	_ = srv.Shutdown(ctx)
+	cancel()
+	return nil
 }
 
 // Stop the beat
 func (bt *Rtbeat) Stop() {
-	bt.client.Close()
+	_ = bt.client.Close()
 	close(bt.done)
 }

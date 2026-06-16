@@ -1,0 +1,73 @@
+version: "2"
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - unconvert
+    - gocritic
+    - revive
+    - predeclared
+    - nilnil
+  disable:
+    - depguard
+  settings:
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment  # too noisy for this codebase
+        - shadow          # err shadowing is standard Go idiom
+    misspell:
+      locale: US
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      disabled-checks:
+        - whyNoLint
+        - hugeParam
+        - rangeValCopy
+        - unnamedResult
+        - paramTypeCombine
+        - emptyStringTest
+        - commentedOutCode
+        - nestingReduce
+    revive:
+      enable-all-rules: false
+      rules:
+        - name: unused-parameter
+          severity: warning
+        - name: var-declaration
+          severity: warning
+        - name: import-shadowing
+          severity: warning
+        - name: unreachable-code
+          severity: warning
+        - name: context-as-argument
+          severity: warning
+  exclusions:
+    rules:
+      # Test files can be more relaxed.
+      - path: _test\.go
+        linters:
+          - errcheck
+          - nilnil
+      # The beats system-test scaffold (main_test.go) keeps the standard
+      # testing signature even where a parameter is unused.
+      - path: _test\.go
+        linters:
+          - revive
+        text: "unused-parameter"
+
+issues:
+  max-issues-per-linter: 100
+  max-same-issues: 20
