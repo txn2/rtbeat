@@ -1,0 +1,15 @@
+# Default owners for everything in the repo
+* @cjimti
+
+# Beat implementation
+/beater/ @cjimti
+/cmd/ @cjimti
+/config/ @cjimti
+
+# Documentation
+/docs/ @cjimti
+*.md @cjimti
+
+# CI/CD and release configuration
+/.github/ @cjimti
+.goreleaser.yml @cjimti

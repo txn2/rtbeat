@@ -1,13 +1,14 @@
 package cmd
 
 import (
-	"github.com/txn2/rtbeat/beater"
+	cmd "github.com/elastic/beats/v7/libbeat/cmd"
+	"github.com/elastic/beats/v7/libbeat/cmd/instance"
 
-	cmd "github.com/elastic/beats/libbeat/cmd"
+	"github.com/txn2/rtbeat/beater"
 )
 
 // Name of this beat
 var Name = "rtbeat"
 
 // RootCmd to handle beats cli
-var RootCmd = cmd.GenRootCmd(Name, "", beater.New)
+var RootCmd = cmd.GenRootCmdWithSettings(beater.New, instance.Settings{Name: Name})

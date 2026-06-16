@@ -1,0 +1,19 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%
+    patch:
+      default:
+        target: 50%
+        # Patch coverage is reported but does not block PRs. Much of rtbeat
+        # is an HTTP/publish integration path that is exercised by the
+        # system tests rather than unit tests. Project-level coverage still
+        # blocks.
+        informational: true
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: true
