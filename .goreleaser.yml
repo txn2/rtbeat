@@ -118,6 +118,9 @@ release:
   name_template: "{{.ProjectName}}-v{{.Version}}"
   draft: true
 
+# NOTE: `brews:` is valid on the CI-pinned goreleaser line (`~> v2.13`) but is
+# deprecated as of goreleaser v2.16. Migrate to the new homebrew syntax before
+# bumping the goreleaser-action pin in .github/workflows/{ci,release}.yml past 2.13.
 brews:
   - name: rtbeat
     repository:
