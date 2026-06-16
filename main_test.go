@@ -14,8 +14,15 @@ var systemTest *bool
 func init() {
 	systemTest = flag.Bool("systemTest", false, "Set to true when running system tests")
 
-	cmd.RootCmd.PersistentFlags().AddGoFlag(flag.CommandLine.Lookup("systemTest"))
-	cmd.RootCmd.PersistentFlags().AddGoFlag(flag.CommandLine.Lookup("test.coverprofile"))
+	// Expose select testing flags on the beat's root command so the
+	// system-test harness can drive the binary. The testing package
+	// registers flags such as test.coverprofile lazily, so they may be
+	// absent at init() time on modern Go — guard against nil lookups.
+	for _, name := range []string{"systemTest", "test.coverprofile"} {
+		if f := flag.CommandLine.Lookup(name); f != nil {
+			cmd.RootCmd.PersistentFlags().AddGoFlag(f)
+		}
+	}
 }
 
 // Test started when the test binary is started. Only calls main.

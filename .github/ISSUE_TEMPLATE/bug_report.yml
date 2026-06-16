@@ -1,0 +1,113 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in rtbeat
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the information below to help us diagnose and fix the issue.
+
+  - type: input
+    id: version
+    attributes:
+      label: rtbeat version
+      description: Output of `rtbeat version`
+      placeholder: "rtbeat version 7.17.29 (amd64), libbeat 7.17.29"
+    validations:
+      required: true
+
+  - type: input
+    id: elastic-version
+    attributes:
+      label: Elastic Stack version
+      description: Version of Elasticsearch / Kibana / Logstash that rtbeat outputs to
+      placeholder: "Elasticsearch 7.17.29, Kibana 7.17.29"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux (Ubuntu/Debian)
+        - Linux (RHEL/CentOS/Fedora)
+        - Linux (Other)
+        - Windows
+        - Docker container
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: How is rtbeat deployed?
+      options:
+        - Standalone binary
+        - Docker container
+        - Kubernetes
+        - Built from source
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: What happened? What did you expect to happen?
+      placeholder: |
+        Expected behavior:
+        ...
+
+        Actual behavior:
+        ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal steps to reproduce the bug
+      placeholder: |
+        1. Start rtbeat with `./rtbeat -c rtbeat.yml -e`
+        2. POST a rxtx MessageBatch to http://localhost:8081/in
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Verbose Logs
+      description: Output from running rtbeat with debug logging enabled (optional but very helpful)
+      render: shell
+      placeholder: |
+        Paste output from: ./rtbeat -c rtbeat.yml -e -d "*"
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: Relevant portions of your rtbeat.yml (redact any credentials, hosts, or secrets)
+      render: yaml
+      placeholder: |
+        rtbeat:
+          port: "8081"
+          timeout: 5
+
+        output.elasticsearch:
+          hosts: ["localhost:9200"]
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues to ensure this bug hasn't already been reported
+          required: true
+        - label: I have removed any credentials or secrets from the config and logs above
+          required: true

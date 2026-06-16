@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -14,9 +14,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-	"github.com/elastic/beats/libbeat/beat"
-	"github.com/elastic/beats/libbeat/common"
-	"github.com/elastic/beats/libbeat/logp"
+	"github.com/elastic/beats/v7/libbeat/beat"
+	"github.com/elastic/beats/v7/libbeat/common"
+	"github.com/elastic/beats/v7/libbeat/common/acker"
 	"github.com/gin-gonic/gin"
 	"github.com/txn2/rtbeat/config"
 	"github.com/txn2/rxtx/rtq"
@@ -32,7 +32,7 @@ type Rtbeat struct {
 }
 
 // New Creates beater
-func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
+func New(_ *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 	c := config.DefaultConfig
 	if err := cfg.Unpack(&c); err != nil {
 		return nil, fmt.Errorf("error reading config file: %v", err)
@@ -82,7 +82,7 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 	var err error
 	bt.client, err = b.Publisher.ConnectWith(beat.ClientConfig{
 		//PublishMode: beat.GuaranteedSend,
-		ACKCount: func(i int) {
+		ACKHandler: acker.RawCounting(func(i int) {
 			bt.logger.Info("Run", zapcore.Field{
 				Key:     "ACKCount",
 				Type:    zapcore.Int32Type,
@@ -90,7 +90,7 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 			})
 			currentAcks.Set(float64(i))
 			totalAcks.Add(float64(i))
-		},
+		}),
 	})
 	if err != nil {
 		return err
@@ -101,9 +101,9 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 	gin.DisableConsoleColor()
 
 	// discard default logger
-	gin.DefaultWriter = ioutil.Discard
+	gin.DefaultWriter = io.Discard
 
-	//get a router
+	// get a router
 	r := gin.Default()
 
 	r.POST("/in", func(c *gin.Context) {
@@ -121,7 +121,7 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 				"message": fmt.Sprintf("could not unmarshal json: %s", rawData),
 			})
 
-			logp.Error(err)
+			bt.logger.Error("Run", zap.String("error", "could not unmarshal json"), zap.Error(err))
 			return
 		}
 
@@ -133,7 +133,7 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 		// fie this in the background
 		go func() {
 			events := make([]beat.Event, 1)
-			var event = beat.Event{}
+			var event beat.Event
 
 			for i, message := range msg.Messages {
 				messages.Inc()
@@ -179,28 +179,24 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 	}()
 
 	// block waiting for done
-	for {
-		select {
-		case <-bt.done:
-			bt.logger.Info("Run",
-				zapcore.Field{
-					Key:    "Status",
-					Type:   zapcore.StringType,
-					String: "Shutting down web server.",
-				},
-			)
+	<-bt.done
+	bt.logger.Info("Run",
+		zapcore.Field{
+			Key:    "Status",
+			Type:   zapcore.StringType,
+			String: "Shutting down web server.",
+		},
+	)
 
-			// shutdown the web server
-			ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-			srv.Shutdown(ctx)
-			return nil
-		}
-	}
-
+	// shutdown the web server
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	_ = srv.Shutdown(ctx)
+	cancel()
+	return nil
 }
 
 // Stop the beat
 func (bt *Rtbeat) Stop() {
-	bt.client.Close()
+	_ = bt.client.Close()
 	close(bt.done)
 }

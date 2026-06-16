@@ -6,3 +6,14 @@
 /rtbeat.test
 *.pyc
 /dist
+
+# Go / module-era artifacts
+/.tools
+coverage.txt
+coverage.out
+*.test
+/site
+
+# Local Claude settings
+/.claude/settings.local.json
+/data

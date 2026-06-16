@@ -1,0 +1,41 @@
+site_name: rtbeat
+site_url: https://txn2.github.io/rtbeat/
+site_description: Elastic Beat that receives rxtx HTTP batches and publishes them as Beats events into Elasticsearch, Logstash, Kafka, or Redis.
+site_author: Craig Johnston
+repo_url: https://github.com/txn2/rtbeat
+repo_name: txn2/rtbeat
+edit_uri: edit/master/docs/
+
+copyright: Copyright &copy; 2018 - 2026 Craig Johnston / Deasil Works, Inc.
+
+theme:
+  name: material
+  palette:
+    scheme: slate
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Configuration: configuration.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/txn2/rtbeat
+      name: rtbeat on GitHub
