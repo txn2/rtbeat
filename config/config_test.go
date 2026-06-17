@@ -13,12 +13,16 @@ func TestDefaultConfig(t *testing.T) {
 	if DefaultConfig.Timeout != 5 {
 		t.Errorf("default Timeout = %d, want 5", DefaultConfig.Timeout)
 	}
+	if DefaultConfig.ShutdownTimeout != 30 {
+		t.Errorf("default ShutdownTimeout = %d, want 30", DefaultConfig.ShutdownTimeout)
+	}
 }
 
 func TestUnpackOverrides(t *testing.T) {
 	raw, err := common.NewConfigFrom(map[string]interface{}{
-		"port":    "9090",
-		"timeout": 30,
+		"port":             "9090",
+		"timeout":          30,
+		"shutdown_timeout": 45,
 	})
 	if err != nil {
 		t.Fatalf("NewConfigFrom: %v", err)
@@ -34,6 +38,9 @@ func TestUnpackOverrides(t *testing.T) {
 	}
 	if c.Timeout != 30 {
 		t.Errorf("Timeout = %d, want 30", c.Timeout)
+	}
+	if c.ShutdownTimeout != 45 {
+		t.Errorf("ShutdownTimeout = %d, want 45", c.ShutdownTimeout)
 	}
 }
 

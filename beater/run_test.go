@@ -14,22 +14,36 @@ import (
 )
 
 // fakeClient implements beat.Client, recording published events and signaling
-// when it is closed.
+// when it is closed. It simulates the output delivering events by driving the
+// registered ACK handler, which is how rtbeat's per-batch ack waiter and ack
+// metrics are exercised end-to-end.
 type fakeClient struct {
 	published chan []beat.Event
 	closed    chan struct{}
+	acker     beat.ACKer
 }
 
 func newFakeClient() *fakeClient {
 	return &fakeClient{published: make(chan []beat.Event, 8), closed: make(chan struct{})}
 }
 
-func (c *fakeClient) Publish(e beat.Event)       { c.published <- []beat.Event{e} }
-func (c *fakeClient) PublishAll(es []beat.Event) { c.published <- es }
-func (c *fakeClient) Close() error               { close(c.closed); return nil }
+func (c *fakeClient) Publish(e beat.Event) { c.PublishAll([]beat.Event{e}) }
+
+func (c *fakeClient) PublishAll(es []beat.Event) {
+	c.published <- es
+	if c.acker != nil {
+		for _, e := range es {
+			c.acker.AddEvent(e, true)
+		}
+		c.acker.ACKEvents(len(es))
+	}
+}
+
+func (c *fakeClient) Close() error { close(c.closed); return nil }
 
 // fakePipeline implements beat.Pipeline and captures the ClientConfig so the
-// test can drive the ACK handler.
+// test can inspect it; it also hands the client the registered ACK handler so
+// publishes can simulate delivery.
 type fakePipeline struct {
 	client *fakeClient
 	cfg    beat.ClientConfig
@@ -37,6 +51,7 @@ type fakePipeline struct {
 
 func (p *fakePipeline) ConnectWith(cc beat.ClientConfig) (beat.Client, error) {
 	p.cfg = cc
+	p.client.acker = cc.ACKHandler
 	return p.client, nil
 }
 
@@ -70,6 +85,28 @@ func waitForServer(t *testing.T, url string) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	t.Fatal("server did not start within timeout")
+}
+
+func TestNewClampsNonPositiveTimeouts(t *testing.T) {
+	cfg, err := common.NewConfigFrom(map[string]interface{}{
+		"timeout":          0,
+		"shutdown_timeout": -1,
+	})
+	if err != nil {
+		t.Fatalf("config: %v", err)
+	}
+	bter, err := New(nil, cfg)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	bt := bter.(*Rtbeat)
+
+	if bt.config.Timeout != 5 {
+		t.Errorf("Timeout = %d, want clamped to default 5", bt.config.Timeout)
+	}
+	if bt.config.ShutdownTimeout != 30 {
+		t.Errorf("ShutdownTimeout = %d, want clamped to default 30", bt.config.ShutdownTimeout)
+	}
 }
 
 // TestRunLifecycle drives the full beat through a fake libbeat pipeline:
@@ -109,7 +146,9 @@ func TestRunLifecycle(t *testing.T) {
 	base := "http://127.0.0.1:" + port
 	waitForServer(t, base+"/metrics")
 
-	// POST a batch and confirm it is published through the pipeline.
+	// POST a batch. The fake client acks it through the registered ACK
+	// handler, so the durability path (publish -> wait for delivery -> 200)
+	// completes and returns 200.
 	body := `{"uuid":"b1","size":1,"messages":[{"seq":"1","payload":{"k":"v"}}]}`
 	resp, err := http.Post(base+"/in", "application/json", strings.NewReader(body)) //nolint:gosec // fixed localhost test URL
 	if err != nil {
@@ -123,8 +162,8 @@ func TestRunLifecycle(t *testing.T) {
 
 	select {
 	case events := <-client.published:
-		if len(events) != 2 { // placeholder + one message
-			t.Errorf("published %d events, want 2", len(events))
+		if len(events) != 1 { // one message, no placeholder
+			t.Errorf("published %d events, want 1", len(events))
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("pipeline did not receive published events")
@@ -141,13 +180,12 @@ func TestRunLifecycle(t *testing.T) {
 		t.Errorf("GET /metrics status = %d, want 200", mResp.StatusCode)
 	}
 
-	// Exercise the ACK callback wired up in Run.
+	// The ACK handler must have been registered for delivery confirmation.
 	if pipe.cfg.ACKHandler == nil {
 		t.Fatal("Run did not register an ACK handler")
 	}
-	pipe.cfg.ACKHandler.ACKEvents(3)
 
-	// Stop closes the client and unblocks Run.
+	// Stop closes the client (draining) and unblocks Run.
 	bt.Stop()
 
 	select {

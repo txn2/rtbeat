@@ -5,8 +5,13 @@
 rtbeat:
   # HTTP server port
   port: "8081"
-  # timeout
+  # Seconds POST /in waits for the output to acknowledge a batch before
+  # responding 504. The 200 means "delivered", not merely "received", so the
+  # sender (e.g. rxtx) keeps its durable copy until delivery is confirmed.
   timeout: 5
+  # Seconds Stop() waits for in-flight events to be acknowledged (drained)
+  # before closing the publisher on graceful shutdown.
+  shutdown_timeout: 30
 
 #================================ General =====================================
 

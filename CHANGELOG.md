@@ -5,6 +5,15 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+
+- **Durability:** `POST /in` now acknowledges a batch only after the output confirms delivery
+  (`GuaranteedSend` + per-batch ack), returning 200 on delivery or 504 on timeout (configurable via
+  `timeout`), so an upstream sender keeps its durable copy until the event is genuinely downstream.
+  Graceful shutdown now drains in-flight events (configurable via `shutdown_timeout`) before closing
+  the publisher, and stops HTTP intake before draining. Removed the stray leading empty event that
+  was published with every batch. (#1)
+
 ### Changed
 
 - Migrated from glide/GOPATH vendoring to Go modules (`go.mod`), targeting Go 1.26.
