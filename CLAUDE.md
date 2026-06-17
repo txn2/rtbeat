@@ -58,5 +58,5 @@ These differ from the pre-modules alpha the project was originally written again
 ## Release
 
 Tag `v*` → GitHub Actions runs GoReleaser v2: signed (Cosign keyless) archives with SBOMs, SLSA
-provenance, multi-arch Docker images (`txn2/rtbeat`), and a Homebrew formula. Releases are created as
+provenance, multi-arch container images (`ghcr.io/txn2/rtbeat`), and a Homebrew formula. Releases are created as
 drafts.
