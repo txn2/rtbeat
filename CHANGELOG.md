@@ -1,28 +1,6 @@
 # Changelog
 
-All notable changes to this project are documented here. The format is based on
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+Release notes live on **GitHub Releases**: https://github.com/txn2/rtbeat/releases
 
-## [Unreleased]
-
-### Changed
-
-- Migrated from glide/GOPATH vendoring to Go modules (`go.mod`), targeting Go 1.26.
-- Upgraded Elastic libbeat to v7.17.29 (from the v7.0.0-alpha line) and refreshed all direct
-  dependencies (gin, prometheus client, zap).
-- Replaced the libbeat-generated Makefile and Travis CI with a `make verify` workflow and GitHub
-  Actions (CI, CodeQL, OpenSSF Scorecard, Dependabot, docs).
-- Reworked the GoReleaser pipeline to v2: static `CGO_ENABLED=0` builds for linux/darwin
-  (amd64, arm64), Cosign keyless signing, SBOMs, SLSA provenance, and multi-arch Docker images.
-
-### Added
-
-- `golangci-lint` v2 configuration and a clean lint baseline.
-- `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, issue/PR templates, `CODEOWNERS`,
-  `codecov.yml`, and MkDocs documentation.
-
-### Notes
-
-- The rxtx `MessageBatch` wire format is unchanged; `txn2/rxtx` is pinned to the prior production
-  revision and its 2018-era transitive dependencies (`coreos/bbolt`, `satori/go.uuid`) are pinned to
-  compatible commits.
+Each tagged release (`vX.Y.Z`) ships notes generated from the commit history by
+GoReleaser, alongside signed artifacts, checksums, SBOMs, and provenance.

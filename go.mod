@@ -29,6 +29,7 @@ replace (
 
 require (
 	github.com/elastic/beats/v7 v7.17.29
+	github.com/elastic/go-lumber v0.1.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/txn2/rxtx v1.5.2
@@ -64,7 +65,6 @@ require (
 	github.com/elastic/elastic-agent-client/v7 v7.8.1 // indirect
 	github.com/elastic/elastic-agent-libs v0.7.2 // indirect
 	github.com/elastic/go-concert v0.2.0 // indirect
-	github.com/elastic/go-lumber v0.1.0 // indirect
 	github.com/elastic/go-seccomp-bpf v1.2.0 // indirect
 	github.com/elastic/go-structform v0.0.9 // indirect
 	github.com/elastic/go-sysinfo v1.8.1 // indirect

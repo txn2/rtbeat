@@ -60,6 +60,14 @@ test:
 	@echo "==> go test (race + coverage, matches CI)"
 	$(GO) test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
+# End-to-end durability tests: build the real binary and drive it against a
+# controllable lumberjack (logstash) server. Tag-gated so the default test run
+# stays fast and offline.
+.PHONY: e2e
+e2e:
+	@echo "==> go test -tags e2e (end-to-end durability)"
+	$(GO) test -tags e2e -count=1 -timeout 300s ./test/e2e/...
+
 # Install the exact golangci-lint version CI uses, into a local cache.
 $(GOLANGCI_LINT):
 	@echo "==> installing golangci-lint $(GOLANGCI_LINT_VERSION)"
@@ -87,6 +95,7 @@ help:
 	@echo "  verify           lint + test + build + tidy-check + action pins"
 	@echo "  lint             golangci-lint (auto-installs $(GOLANGCI_LINT_VERSION) to .tools/)"
 	@echo "  test             go test -race with coverage profile"
+	@echo "  e2e              end-to-end durability tests (go test -tags e2e)"
 	@echo "  build            CGO_ENABLED=0 go build -o rtbeat ."
 	@echo "  tidy             go mod tidy"
 	@echo "  tidy-check       fail if go.mod/go.sum are not tidy"

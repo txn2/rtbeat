@@ -9,11 +9,28 @@ processor, and logging options is documented in `rtbeat.reference.yml` at the re
 rtbeat:
   # HTTP port the /in and /metrics endpoints listen on.
   port: "8081"
-  # Read timeout, in seconds.
+  # Seconds POST /in waits for the output to acknowledge a batch (see Delivery).
   timeout: 5
+  # Seconds Stop() waits to drain in-flight events on graceful shutdown.
+  shutdown_timeout: 30
 ```
 
-The defaults (port `8081`, timeout `5`) are applied when the keys are omitted.
+The defaults (port `8081`, timeout `5`, shutdown_timeout `30`) are applied when the keys are omitted.
+
+## Delivery semantics
+
+rtbeat acknowledges a batch only **after** the configured output confirms delivery:
+
+- `POST /in` publishes the batch with `GuaranteedSend` and waits up to `timeout` seconds for the
+  output to ack. On ack it returns **200** ("delivered"); if the ack does not arrive in time it
+  returns **504**, so a durable sender such as [rxtx](https://github.com/txn2/rxtx) keeps its copy
+  and retries rather than dropping it on a premature 200. (Use a deterministic document id downstream
+  so a retried batch dedupes.)
+- On graceful shutdown, rtbeat stops accepting new requests, lets in-flight handlers finish, then
+  drains outstanding events for up to `shutdown_timeout` seconds before closing the publisher.
+
+For at-least-once delivery across hard crashes as well, configure libbeat's disk queue/spool in the
+output/queue settings (see `rtbeat.reference.yml`).
 
 ## Output
 
