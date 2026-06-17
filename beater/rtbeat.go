@@ -29,6 +29,13 @@ type Rtbeat struct {
 	config config.Config
 	client beat.Client
 	logger *zap.Logger
+
+	// Prometheus registry seam. Both nil in production, which resolves to the
+	// global default registerer/gatherer (preserving the original behavior).
+	// Tests inject a private registry so repeated Run calls don't collide on
+	// the global registry's duplicate-registration guard.
+	registerer prometheus.Registerer
+	gatherer   prometheus.Gatherer
 }
 
 // New Creates beater
@@ -59,22 +66,32 @@ func New(_ *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 // Run the beat
 func (bt *Rtbeat) Run(b *beat.Beat) error {
 
-	batches := promauto.NewCounter(prometheus.CounterOpts{
+	registerer := bt.registerer
+	if registerer == nil {
+		registerer = prometheus.DefaultRegisterer
+	}
+	gatherer := bt.gatherer
+	if gatherer == nil {
+		gatherer = prometheus.DefaultGatherer
+	}
+	metrics := promauto.With(registerer)
+
+	batches := metrics.NewCounter(prometheus.CounterOpts{
 		Name: "rtbeat_batches_received",
 		Help: "Total number batches received",
 	})
 
-	messages := promauto.NewCounter(prometheus.CounterOpts{
+	messages := metrics.NewCounter(prometheus.CounterOpts{
 		Name: "rtbeat_messages_parsed",
 		Help: "Total number messages parsed.",
 	})
 
-	currentAcks := promauto.NewGauge(prometheus.GaugeOpts{
+	currentAcks := metrics.NewGauge(prometheus.GaugeOpts{
 		Name: "rtbeat_current_acks",
 		Help: "Current acks.",
 	})
 
-	totalAcks := promauto.NewCounter(prometheus.CounterOpts{
+	totalAcks := metrics.NewCounter(prometheus.CounterOpts{
 		Name: "rtbeat_acks_received",
 		Help: "Total number of acks.",
 	})
@@ -110,8 +127,12 @@ func (bt *Rtbeat) Run(b *beat.Beat) error {
 		messages.Add(float64(n))
 	}))
 
-	// Prometheus Metrics
-	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	// Prometheus Metrics. InstrumentMetricHandler mirrors promhttp.Handler()
+	// exactly (it adds promhttp_metric_handler_requests_total / _in_flight),
+	// but bound to the resolved registry rather than the global default.
+	r.GET("/metrics", gin.WrapH(promhttp.InstrumentMetricHandler(
+		registerer, promhttp.HandlerFor(gatherer, promhttp.HandlerOpts{}),
+	)))
 
 	srv := &http.Server{
 		Addr:    ":" + bt.config.Port,
