@@ -14,6 +14,12 @@ All notable changes to this project are documented here. The format is based on
   the publisher, and stops HTTP intake before draining. Removed the stray leading empty event that
   was published with every batch. (#1)
 
+### Added
+
+- End-to-end durability tests (`make e2e` / `go test -tags e2e ./test/e2e/...`): they run the real
+  rtbeat binary against a controllable lumberjack (logstash) server and assert 200-only-after-real-ack,
+  504-on-stall, and in-flight drain on SIGTERM. Wired into CI as a dedicated job.
+
 ### Changed
 
 - Migrated from glide/GOPATH vendoring to Go modules (`go.mod`), targeting Go 1.26.
