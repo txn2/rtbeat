@@ -88,7 +88,7 @@ dockers_v2:
     ids:
       - rtbeat
     images:
-      - txn2/rtbeat
+      - ghcr.io/txn2/rtbeat
     tags:
       - latest
       - "{{ .Tag }}"

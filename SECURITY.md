@@ -68,14 +68,14 @@ use the artifact.
 
 #### Container images
 
-Container images published to `txn2/rtbeat` are signed with Cosign keyless
-signing as well:
+Container images published to `ghcr.io/txn2/rtbeat` are signed with Cosign
+keyless signing as well:
 
 ```bash
 cosign verify \
   --certificate-identity-regexp "https://github.com/txn2/rtbeat" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  txn2/rtbeat:{VERSION}
+  ghcr.io/txn2/rtbeat:{VERSION}
 ```
 
 ### SLSA Provenance

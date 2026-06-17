@@ -35,7 +35,7 @@ curl -s localhost:8081/in -d '{"uuid":"demo","size":1,"messages":[{"seq":"1","pa
 
 ```bash
 docker run --rm -p 8081:8081 -v "$PWD/rtbeat.yml:/rtbeat.yml" \
-  txn2/rtbeat -c /rtbeat.yml -e
+  ghcr.io/txn2/rtbeat -c /rtbeat.yml -e
 ```
 
 See [Configuration](configuration.md) for the output and listener settings.

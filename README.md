@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/txn2/rtbeat/graph/badge.svg)](https://codecov.io/gh/txn2/rtbeat)
 [![Go Report Card](https://goreportcard.com/badge/github.com/txn2/rtbeat)](https://goreportcard.com/report/github.com/txn2/rtbeat)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/txn2/rtbeat/badge)](https://securityscorecards.dev/viewer/?uri=github.com/txn2/rtbeat)
-[![Docker Pulls](https://img.shields.io/docker/pulls/txn2/rtbeat.svg)](https://hub.docker.com/r/txn2/rtbeat/)
+[![ghcr.io](https://img.shields.io/badge/ghcr.io-txn2%2Frtbeat-2496ED?logo=github)](https://github.com/txn2/rtbeat/pkgs/container/rtbeat)
 
 # Rtbeat
 
@@ -44,7 +44,7 @@ full set of libbeat output and processor options.
 
 ```bash
 docker run --rm -p 8081:8081 -v "$PWD/rtbeat.yml:/rtbeat.yml" \
-  txn2/rtbeat -c /rtbeat.yml -e
+  ghcr.io/txn2/rtbeat -c /rtbeat.yml -e
 ```
 
 ## Develop
