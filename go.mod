@@ -29,7 +29,7 @@ replace (
 
 require (
 	github.com/elastic/beats/v7 v7.17.29
-	github.com/elastic/go-lumber v0.1.1
+	github.com/elastic/go-lumber v0.2.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/txn2/rxtx v1.5.2
